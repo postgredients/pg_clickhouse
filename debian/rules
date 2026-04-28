@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+
+# pg_clickhouse vendors clickhouse-cpp and builds it via cmake during
+# the normal make step.  pg_buildext takes care of invoking make for
+# each PostgreSQL version; we just need cmake available at build time.
+
+override_dh_auto_build:
+	+pg_buildext build build-%v
+
+override_dh_auto_test:
+	# regression tests require a running PostgreSQL instance;
+	# see debian/tests/* for autopkgtest-based testing instead
+
+override_dh_auto_install:
+	+export PG_SUPPORTED_VERSIONS=pgdg && pg_buildext loop postgresql-%v-pg-clickhouse
+
+override_dh_auto_clean:
+	+pg_buildext clean build-%v
+	rm -rf build
+
+%:
+	dh $@

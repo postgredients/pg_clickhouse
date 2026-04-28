@@ -1,0 +1,46 @@
+Source: pg-clickhouse
+Section: database
+Priority: optional
+Maintainer: Yandex MDB Team <mdb@yandex-team.ru>
+Build-Depends: debhelper (>= 10),
+               postgresql-server-dev-all (>= 195~),
+               cmake (>= 3.12),
+               libcurl4-openssl-dev,
+               libssl-dev,
+               g++,
+               pkg-config
+Standards-Version: 1.1-0
+Homepage: https://github.com/ClickHouse/pg_clickhouse
+
+Package: postgresql-15-pg-clickhouse
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-15
+Description: PostgreSQL Foreign Data Wrapper for ClickHouse
+ pg_clickhouse is a PostgreSQL extension that implements a Foreign Data
+ Wrapper (FDW) for ClickHouse. It allows querying ClickHouse tables
+ directly from PostgreSQL using standard SQL.
+ .
+ Features include full SELECT pushdown, aggregate pushdown, INSERT support,
+ and both HTTP and binary protocol drivers.
+
+Package: postgresql-16-pg-clickhouse
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-16
+Description: PostgreSQL Foreign Data Wrapper for ClickHouse
+ pg_clickhouse is a PostgreSQL extension that implements a Foreign Data
+ Wrapper (FDW) for ClickHouse. It allows querying ClickHouse tables
+ directly from PostgreSQL using standard SQL.
+ .
+ Features include full SELECT pushdown, aggregate pushdown, INSERT support,
+ and both HTTP and binary protocol drivers.
+
+Package: postgresql-17-pg-clickhouse
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, postgresql-17
+Description: PostgreSQL Foreign Data Wrapper for ClickHouse
+ pg_clickhouse is a PostgreSQL extension that implements a Foreign Data
+ Wrapper (FDW) for ClickHouse. It allows querying ClickHouse tables
+ directly from PostgreSQL using standard SQL.
+ .
+ Features include full SELECT pushdown, aggregate pushdown, INSERT support,
+ and both HTTP and binary protocol drivers.
