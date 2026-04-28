@@ -28,6 +28,14 @@
 #include "utils/varlena.h"
 #include "utils/builtins.h"
 
+#ifdef WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#endif
+
 static char *DEFAULT_DBNAME = "default";
 
 #if PG_VERSION_NUM < 160000
@@ -79,6 +87,7 @@ static void InitChFdwOptions(void);
 static bool is_valid_option(const char *keyword, Oid context);
 static bool is_ch_option(const char *keyword);
 static void validate_fetch_size_option(DefElem * def);
+static void validate_clickhouse_host(const char *host);
 
 /*
  * Validate the generic options given to a FOREIGN DATA WRAPPER, SERVER,
@@ -132,6 +141,10 @@ clickhouse_fdw_validator(PG_FUNCTION_ARGS)
 
 		if (strcmp(def->defname, "fetch_size") == 0)
 			validate_fetch_size_option(def);
+
+		if (strcmp(def->defname, "host") == 0 &&
+			catalog == ForeignServerRelationId)
+			validate_clickhouse_host(defGetString(def));
 	}
 
 	PG_RETURN_VOID();
@@ -231,6 +244,80 @@ validate_fetch_size_option(DefElem * def)
 				 errmsg("invalid value for option \"%s\": %s",
 						def->defname, defGetString(def)),
 				 errhint("fetch_size must be greater than or equal to 0")));
+	}
+}
+
+/*
+ * validate_clickhouse_host - reject addresses that must never be reachable
+ * from a shared PostgreSQL server.
+ *
+ * We block loopback (127.0.0.0/8, ::1) and link-local (169.254.0.0/16,
+ * fe80::/10) addresses.  Link-local is the range used by the instance
+ * metadata service on every major cloud provider (AWS, GCP, Azure, Yandex
+ * Cloud all serve IMDS at 169.254.169.254).  Allowing connections there
+ * would let any database user extract instance credentials via SSRF.
+ *
+ * RFC 1918 private ranges (10/8, 172.16/12, 192.168/16) are intentionally
+ * NOT blocked: administrators commonly run ClickHouse inside a private
+ * network and access it over those addresses.
+ */
+static void
+validate_clickhouse_host(const char *host)
+{
+	struct in_addr addr4;
+	struct in6_addr addr6;
+	uint32_t	a;
+
+	if (host == NULL || host[0] == '\0')
+		return;
+
+	/* Reject the "localhost" hostname (case-insensitive) */
+	if (pg_strcasecmp(host, "localhost") == 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_FDW_INVALID_STRING_FORMAT),
+				 errmsg("connection to host \"%s\" is not allowed", host),
+				 errdetail("Loopback addresses are not permitted in ClickHouse FDW server definitions.")));
+
+	/* Try to parse as an IPv4 address */
+	if (inet_pton(AF_INET, host, &addr4) == 1)
+	{
+		a = ntohl(addr4.s_addr);
+
+		/* 127.0.0.0/8 — loopback */
+		if ((a & 0xFF000000U) == 0x7F000000U)
+			ereport(ERROR,
+					(errcode(ERRCODE_FDW_INVALID_STRING_FORMAT),
+					 errmsg("connection to host \"%s\" is not allowed", host),
+					 errdetail("Loopback addresses are not permitted in ClickHouse FDW server definitions.")));
+
+		/* 169.254.0.0/16 — link-local / instance metadata service */
+		if ((a & 0xFFFF0000U) == 0xA9FE0000U)
+			ereport(ERROR,
+					(errcode(ERRCODE_FDW_INVALID_STRING_FORMAT),
+					 errmsg("connection to host \"%s\" is not allowed", host),
+					 errdetail("Link-local addresses (169.254.0.0/16) are not permitted in ClickHouse FDW "
+							   "server definitions. This range is used by cloud instance metadata services.")));
+
+		return;
+	}
+
+	/* Try to parse as an IPv6 address */
+	if (inet_pton(AF_INET6, host, &addr6) == 1)
+	{
+		/* ::1 — loopback */
+		if (IN6_IS_ADDR_LOOPBACK(&addr6))
+			ereport(ERROR,
+					(errcode(ERRCODE_FDW_INVALID_STRING_FORMAT),
+					 errmsg("connection to host \"%s\" is not allowed", host),
+					 errdetail("Loopback addresses are not permitted in ClickHouse FDW server definitions.")));
+
+		/* fe80::/10 — link-local */
+		if (IN6_IS_ADDR_LINKLOCAL(&addr6))
+			ereport(ERROR,
+					(errcode(ERRCODE_FDW_INVALID_STRING_FORMAT),
+					 errmsg("connection to host \"%s\" is not allowed", host),
+					 errdetail("Link-local addresses (fe80::/10) are not permitted in ClickHouse FDW "
+							   "server definitions.")));
 	}
 }
 
