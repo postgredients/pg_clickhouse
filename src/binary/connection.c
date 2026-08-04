@@ -27,6 +27,7 @@
 #include <openssl/x509v3.h>
 
 #include "binary_internal.h"
+#include "egress.h"
 #include "engine.h"
 
 #define CLICKHOUSE_SECURE_PORT 9440
@@ -95,7 +96,8 @@ tcp_connect(const char *host, int port)
 
 	for (struct addrinfo *ai = res; ai; ai = ai->ai_next)
 	{
-		fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+		fd = ch_egress_socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol,
+							  ai->ai_addr, ai->ai_addrlen);
 		if (fd < 0)
 		{
 			save_errno = errno;

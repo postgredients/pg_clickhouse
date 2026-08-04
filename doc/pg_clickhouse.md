@@ -773,6 +773,21 @@ SET pg_clickhouse.pushdown_regex = 'false';
 
 See [Regular Expressions](#regular-expressions) for details.
 
+#### `pg_clickhouse.egress_interface`
+
+The `pg_clickhouse.egress_interface` parameter binds sockets opened by both
+drivers to a network interface. It is empty by default and can only be changed
+by a superuser:
+
+```sql
+SET pg_clickhouse.egress_interface = 'eth0';
+```
+
+When set, a connection fails if its socket cannot be bound to the interface.
+The option requires `SO_BINDTODEVICE` and is therefore Linux-specific. DNS
+lookups are not confined. Resolved unspecified, loopback and link-local
+destination addresses are rejected, including IPv4-mapped IPv6 addresses.
+
 ### ALTER ROLE
 
 Use [ALTER ROLE]'s `SET` command to [preload](#preloading) pg_clickhouse

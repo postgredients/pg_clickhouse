@@ -1,0 +1,18 @@
+SELECT pgch_version() IS NOT NULL AS loaded;
+ loaded 
+--------
+ t
+(1 row)
+
+SHOW pg_clickhouse.egress_interface;
+ pg_clickhouse.egress_interface 
+--------------------------------
+ 
+(1 row)
+
+CREATE ROLE regress_egress_user;
+SET ROLE regress_egress_user;
+SET pg_clickhouse.egress_interface = 'lo';
+ERROR:  permission denied to set parameter "pg_clickhouse.egress_interface"
+RESET ROLE;
+DROP ROLE regress_egress_user;

@@ -14,6 +14,7 @@
  */
 #include "postgres.h"
 
+#include "egress.h"
 #include "fdw.h"
 #include "kv_list.h"
 
@@ -702,6 +703,17 @@ _PG_init(void)
 							 NULL,
 							 NULL,
 							 NULL);
+
+	DefineCustomStringVariable("pg_clickhouse.egress_interface",
+							   "Network interface outbound ClickHouse connections are confined to.",
+							   NULL,
+							   &ch_egress_interface,
+							   "",
+							   PGC_SUSET,
+							   0,
+							   NULL,
+							   NULL,
+							   NULL);
 
 #if PG_VERSION_NUM >= 150000
 	MarkGUCPrefixReserved("pg_clickhouse");

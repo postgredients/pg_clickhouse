@@ -19,6 +19,7 @@
 #include <uuid/uuid.h>
 
 #include "postgres.h"
+#include "egress.h"
 #include "http.h"
 #include "internal.h"
 #include "http_streaming.h"
@@ -127,6 +128,9 @@ setup_curl(HttpStream * stream, const ch_query * query)
 	curl_easy_setopt(stream->curl, CURLOPT_URL, stream->url);
 	curl_easy_setopt(stream->curl, CURLOPT_NOSIGNAL, 1L);
 	curl_easy_setopt(stream->curl, CURLOPT_VERBOSE, ch_http_get_verbose());
+
+	curl_easy_setopt(stream->curl, CURLOPT_OPENSOCKETFUNCTION,
+					 ch_egress_curl_socket);
 
 	if (ch_http_get_progress_func())
 	{
